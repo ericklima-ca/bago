@@ -1,13 +1,14 @@
-version: '3.1'
+version: "3.8"
 services:
   db:
     container_name: db-bago
-    image: mongo
+    image: postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - ./tmp:/etc/mongo
+      - ./postgres-data:/var/lib/postgresql/data
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_USER: root
+      POSTGRES_DB: root

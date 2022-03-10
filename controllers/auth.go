@@ -3,28 +3,28 @@ package controllers
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/ericklima-ca/bago/database"
 	"github.com/ericklima-ca/bago/models"
 	"github.com/golang-jwt/jwt"
 
 	"github.com/gin-gonic/gin"
 )
 
-// func init() {
-// 	if err := godotenv.Load(); err != nil {
-// 		panic(err)
-// 	}
-// }
-
 var (
 	Auth = authenticator{
-		Login: login,
+		Login:    login,
+		Signup:   signup,
+		Recovery: recovery,
 	}
 )
 
 type authenticator struct {
-	Login gin.HandlerFunc
+	Login    gin.HandlerFunc
+	Signup   gin.HandlerFunc
+	Recovery gin.HandlerFunc
 }
 type loginPayload struct {
 	Login    string `json:"login,omitempty" binding:"required"`
@@ -46,7 +46,19 @@ func login(c *gin.Context) {
 		})
 		return
 	}
-	user, ok := models.TryAuthenticate(loginPayload)
+	var user models.User
+	_id, _ := strconv.Atoi(loginPayload.Login)
+	database.DB.First(&user, "id = ?", _id)
+	ok := user.TryAuthenticate(loginPayload.Password)
+	if !ok && !user.Active {
+		c.JSON(http.StatusNotImplemented, bagoResponse{
+			Ok: false,
+			Body: gin.H{
+				"error": "user not active",
+			},
+		})
+		return
+	}
 	if !ok {
 		c.JSON(http.StatusUnauthorized, bagoResponse{
 			Ok: false,
@@ -54,6 +66,7 @@ func login(c *gin.Context) {
 				"error": "incorrect password or login",
 			},
 		})
+		return
 	}
 
 	br := bagoResponse{
@@ -71,6 +84,56 @@ func login(c *gin.Context) {
 	// c.Header("Authorization", "Bearer: "+br.Body["token"].(string))
 	// ->
 	c.JSON(http.StatusOK, br)
+}
+
+func recovery(c *gin.Context) {
+	var user models.User
+	userIdInt, _ := strconv.Atoi(c.Param("id"))
+	if result := database.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
+		return
+	}
+
+	tokenRecovery := models.TokenRecovery{
+		TokenBase: models.TokenBase{
+			UserID: user.ID,
+		},
+	}
+	database.DB.Create(&tokenRecovery)
+
+}
+
+func signup(c *gin.Context) {
+	var userFormData models.UserFormData
+	if err := c.ShouldBindJSON(&userFormData); err != nil {
+		c.JSON(http.StatusBadRequest, bagoResponse{
+			Ok: false,
+			Body: gin.H{
+				"error": "data does not match",
+			},
+		})
+		return
+	}
+	if result := database.DB.Create(userFormData.GetUser()); result.Error != nil {
+		c.JSON(http.StatusUnauthorized, bagoResponse{
+			Ok: false,
+			Body: gin.H{
+				"error": "user not created",
+			},
+		})
+		return
+	}
+	token := models.TokenSignup{
+		TokenBase: models.TokenBase{
+			UserID: userFormData.ID,
+		},
+	}
+	database.DB.Create(&token)
+	c.JSON(http.StatusCreated, bagoResponse{
+		Ok: true,
+		Body: gin.H{
+			"msg": "user created",
+		},
+	})
 }
 
 func setAuthToken(br *bagoResponse) error {

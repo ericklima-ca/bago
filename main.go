@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/ericklima-ca/bago/db"
+	"log"
+
+	"github.com/ericklima-ca/bago/database"
 	"github.com/ericklima-ca/bago/router"
 	"github.com/joho/godotenv"
 )
@@ -10,11 +12,10 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
 	}
-	closer, err := db.ConnectToDatabase()
-	if err != nil {
-		panic(err)
+	database.ConnectToDatabase()
+	if database.Err == nil {
+		log.Println("DB connected")
 	}
-	defer closer()
 }
 
 func main() {
