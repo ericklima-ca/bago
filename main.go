@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/ericklima-ca/bago/database"
 	"github.com/ericklima-ca/bago/router"
@@ -9,8 +10,10 @@ import (
 )
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		panic(err)
+	if os.Getenv("DOTENV") == "1" {
+		if err := godotenv.Load(); err != nil {
+			panic(err)
+		}
 	}
 	database.ConnectToDatabase()
 	if database.Err == nil {

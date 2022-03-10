@@ -48,18 +48,19 @@ func login(c *gin.Context) {
 	}
 	var user models.User
 	_id, _ := strconv.Atoi(loginPayload.Login)
-	database.DB.First(&user, "id = ?", _id)
-	ok := user.TryAuthenticate(loginPayload.Password)
-	if !ok && !user.Active {
-		c.JSON(http.StatusNotImplemented, bagoResponse{
-			Ok: false,
-			Body: gin.H{
-				"error": "user not active",
-			},
-		})
-		return
-	}
-	if !ok {
+
+	if result := database.DB.First(&user, "id = ?", _id); result.RowsAffected != 0 {
+		ok := user.TryAuthenticate(loginPayload.Password)
+		if !ok && !user.Active {
+			c.JSON(http.StatusNotImplemented, bagoResponse{
+				Ok: false,
+				Body: gin.H{
+					"error": "user not active",
+				},
+			})
+			return
+		}
+	} else {
 		c.JSON(http.StatusUnauthorized, bagoResponse{
 			Ok: false,
 			Body: gin.H{
