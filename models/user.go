@@ -30,7 +30,7 @@ func (ufd *UserFormData) GetUser() *User {
 	return &ufd.User
 }
 
-func (u User) TryAuthenticate(password string) (ok bool) {
+func (u *User) TryAuthenticate(password string) (ok bool) {
 	if !u.Active {
 		return
 	}
