@@ -5,6 +5,7 @@ import (
 
 	"github.com/ericklima-ca/bago/models"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,15 @@ var (
 
 func ConnectToDatabase() {
 
-	dsn := os.Getenv("DATABASE_URL")
-	DB, Err = gorm.Open(postgres.Open(dsn))
-	DB.AutoMigrate(&models.User{}, &models.TokenSignup{}, &models.TokenRecovery{})
+	switch env := os.Getenv("BAGO_ENV"); env {
+	case "", "dev":
+		dsn := os.Getenv("DATABASE_URL")
+		DB, Err = gorm.Open(postgres.Open(dsn))
+		DB.AutoMigrate(&models.User{}, &models.TokenSignup{}, &models.TokenRecovery{})
+	case "test":
+		DB, Err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+		DB.AutoMigrate(&models.User{}, &models.TokenSignup{}, &models.TokenRecovery{})
+	default:
+		panic("No env configured")
+	}
 }
