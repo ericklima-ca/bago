@@ -10,13 +10,6 @@ COPY . .
 RUN go build -o /bago
 
 FROM gcr.io/distroless/base-debian11
-
-ENV DATABASE_URL=postgres://root:root@localhost:5432/root
-ENV JWT_SECRET=secret
-ENV GIN_MODE=release
-
 COPY --from=builder /bago /bago
-
 EXPOSE 8080
-
 ENTRYPOINT ["/bago"]
