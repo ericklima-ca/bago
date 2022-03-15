@@ -2,27 +2,33 @@ package main
 
 import (
 	"log"
-	"os"
 
+	"github.com/ericklima-ca/bago/controllers"
 	"github.com/ericklima-ca/bago/database"
+	"github.com/ericklima-ca/bago/models"
 	"github.com/ericklima-ca/bago/router"
 	"github.com/joho/godotenv"
 )
 
 func init() {
-	if os.Getenv("DOTENV") == "1" {
-		if err := godotenv.Load(); err != nil {
-			panic(err)
-		}
-	}
-	database.ConnectToDatabase()
-	if database.Err == nil {
-		log.Println("DB connected")
-	}
+	godotenv.Load()
 }
 
 func main() {
-	routeServer := router.LoadRoutes()
+	dbs := database.DatabaseServer{
+		Models: []interface{}{&models.TokenRecovery{}, &models.TokenSignup{}, &models.User{}},
+	}
+	db, err := dbs.Connect()
+	if err != nil {
+		log.Fatalf("DB not connected: %v", err.Error())
+	}
+	authController := controllers.AuthController{
+		DB: db,
+	}
+	routerServer := router.Router {
+		AuthController: &authController,
+	}
+	server := routerServer.LoadRoutes()
 
-	routeServer.Run(":8080")
+	server.Run(":8080")
 }

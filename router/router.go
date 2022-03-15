@@ -1,20 +1,25 @@
 package router
 
 import (
-	"os"
-
-	"github.com/ericklima-ca/bago/controllers"
 	"github.com/gin-gonic/gin"
 )
+type Router struct {
+	AuthController AuthHandler
+}
 
-func LoadRoutes() *gin.Engine {
-	gin.SetMode(os.Getenv("GIN_MODE"))
-	r := gin.Default()
+type AuthHandler interface {
+	Login(*gin.Context)
+	Signup(*gin.Context)
+	Recovery(*gin.Context)
+}
 
-	auther := r.Group("/api/auth")
-	auther.POST("/login", controllers.Auth.Login)
-	auther.POST("/signup", controllers.Auth.Signup)
-	auther.HEAD("/recovery/:id", controllers.Auth.Recovery)
+func (r *Router)LoadRoutes() *gin.Engine {
+	routerEngine := gin.Default()
 
-	return r
+	authGroup := routerEngine.Group("/api/auth")
+	authGroup.POST("/login", r.AuthController.Login)
+	authGroup.POST("/signup", r.AuthController.Signup)
+	authGroup.HEAD("/recovery/:id", r.AuthController.Recovery)
+
+	return routerEngine
 }

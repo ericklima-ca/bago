@@ -6,26 +6,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ericklima-ca/bago/database"
 	"github.com/ericklima-ca/bago/models"
 	"github.com/golang-jwt/jwt"
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	Auth = authenticator{
-		Login:    login,
-		Signup:   signup,
-		Recovery: recovery,
-	}
-)
-
-type authenticator struct {
-	Login    gin.HandlerFunc
-	Signup   gin.HandlerFunc
-	Recovery gin.HandlerFunc
+type AuthController struct {
+	DB *gorm.DB
 }
+
+
 type loginPayload struct {
 	Login    string `json:"login,omitempty" binding:"required"`
 	Password string `json:"password,omitempty" binding:"required"`
@@ -35,7 +27,7 @@ type bagoResponse struct {
 	Body gin.H `json:"body,omitempty"`
 }
 
-func login(c *gin.Context) {
+func (a *AuthController)Login(c *gin.Context) {
 	var loginPayload loginPayload
 	if err := c.ShouldBindJSON(&loginPayload); err != nil {
 		c.JSON(http.StatusBadRequest, bagoResponse{
@@ -49,7 +41,7 @@ func login(c *gin.Context) {
 	var user models.User
 	_id, _ := strconv.Atoi(loginPayload.Login)
 
-	if result := database.DB.First(&user, "id = ?", _id); result.RowsAffected != 0 {
+	if result := a.DB.First(&user, "id = ?", _id); result.RowsAffected != 0 {
 		ok := user.TryAuthenticate(loginPayload.Password)
 		if !ok && !user.Active {
 			c.JSON(http.StatusNotImplemented, bagoResponse{
@@ -87,10 +79,10 @@ func login(c *gin.Context) {
 	c.JSON(http.StatusOK, br)
 }
 
-func recovery(c *gin.Context) {
+func (a *AuthController)Recovery(c *gin.Context) {
 	var user models.User
 	userIdInt, _ := strconv.Atoi(c.Param("id"))
-	if result := database.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
+	if result := a.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
 		return
 	}
 
@@ -99,11 +91,11 @@ func recovery(c *gin.Context) {
 			UserID: user.ID,
 		},
 	}
-	database.DB.Create(&tokenRecovery)
+	a.DB.Create(&tokenRecovery)
 
 }
 
-func signup(c *gin.Context) {
+func (a *AuthController)Signup(c *gin.Context) {
 	var userFormData models.UserFormData
 	if err := c.ShouldBindJSON(&userFormData); err != nil {
 		c.JSON(http.StatusBadRequest, bagoResponse{
@@ -114,7 +106,7 @@ func signup(c *gin.Context) {
 		})
 		return
 	}
-	if result := database.DB.Create(userFormData.GetUser()); result.Error != nil {
+	if result := a.DB.Create(userFormData.GetUser()); result.Error != nil {
 		c.JSON(http.StatusUnauthorized, bagoResponse{
 			Ok: false,
 			Body: gin.H{
@@ -128,7 +120,7 @@ func signup(c *gin.Context) {
 			UserID: userFormData.ID,
 		},
 	}
-	database.DB.Create(&token)
+	a.DB.Create(&token)
 	c.JSON(http.StatusCreated, bagoResponse{
 		Ok: true,
 		Body: gin.H{
