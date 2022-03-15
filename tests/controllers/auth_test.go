@@ -14,15 +14,26 @@ import (
 	"github.com/ericklima-ca/bago/router"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
 
-func setUp(t *testing.T) *testing.T {
+func setUp(t *testing.T) (*testing.T, *gorm.DB, controllers.AuthController ) {
 	t.Setenv("BAGO_ENV", "test")
-	database.ConnectToDatabase()
-	return t
+	dbs := database.DatabaseServer{
+		Models: []interface{}{&models.TokenRecovery{}, &models.TokenSignup{}, &models.User{}},
+	}
+	db, err := dbs.Connect()
+	if err != nil {
+		log.Fatalf("DB not connected: %v", err.Error())
+	}
+	authController := controllers.AuthController{
+		DB: db,
+	}
+
+	return t, db, authController
 }
 func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
-	setUp(t)
+	_, db, auth := setUp(t)
 
 	var userTest = models.User{
 		ID:       14511,
@@ -35,13 +46,13 @@ func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
 		User:     userTest,
 		Password: "123456",
 	}
-	tx := database.DB.Create(userFormTest.GetUser)
+	tx := db.Create(userFormTest.GetUser)
 	t.Cleanup(func() {
 		tx.Rollback()
 	})
 
 	r := gin.Default()
-	r.POST("/api/auth/login", controllers.Auth.Login)
+	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
 		"login":     "14511",
@@ -66,7 +77,7 @@ func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
 }
 
 func TestAuthLoginFail(t *testing.T) {
-	setUp(t)
+	_, db, auth := setUp(t)
 
 	var userTest = models.User{
 		ID:       14511,
@@ -79,13 +90,13 @@ func TestAuthLoginFail(t *testing.T) {
 		User:     userTest,
 		Password: "123456",
 	}
-	tx := database.DB.Create(userFormTest.GetUser)
+	tx := db.Create(userFormTest.GetUser)
 	t.Cleanup(func() {
 		tx.Rollback()
 	})
 
 	r := gin.Default()
-	r.POST("/api/auth/login", controllers.Auth.Login)
+	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
 		"login":    "14511",
@@ -110,7 +121,7 @@ func TestAuthLoginFail(t *testing.T) {
 }
 
 func TestAuthLoginUserNotActive(t *testing.T) {
-	setUp(t)
+	_, db, auth := setUp(t)
 
 	var userTest = models.User{
 		ID:       14511,
@@ -122,13 +133,13 @@ func TestAuthLoginUserNotActive(t *testing.T) {
 		User:     userTest,
 		Password: "123456",
 	}
-	tx := database.DB.Create(userFormTest.GetUser())
+	tx := db.Create(userFormTest.GetUser())
 	t.Cleanup(func() {
 		tx.Rollback()
 	})
 
 	r := gin.Default()
-	r.POST("/api/auth/login", controllers.Auth.Login)
+	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
 		"login":    "14511",
@@ -152,9 +163,10 @@ func TestAuthLoginUserNotActive(t *testing.T) {
 }
 
 func TestAuthLoginFailPayload(t *testing.T) {
+	_, _, auth := setUp(t)
 
 	r := gin.Default()
-	r.POST("/api/auth/login", controllers.Auth.Login)
+	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
 		"wrong_login": "14511",
@@ -178,8 +190,15 @@ func TestAuthLoginFailPayload(t *testing.T) {
 }
 
 func TestSignupSucess(t *testing.T) {
-	setUp(t)
-	r := router.LoadRoutes()
+	_, db, _ := setUp(t)
+
+	authController := controllers.AuthController{
+		DB: db,
+	}
+	routerServer := router.Router {
+		AuthController: &authController,
+	}
+	server := routerServer.LoadRoutes()
 
 	payloadSignup := gin.H{
 		"id":       14512,
@@ -195,7 +214,7 @@ func TestSignupSucess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.ServeHTTP(res, req)
+	server.ServeHTTP(res, req)
 
 	var body struct {
 		Ok   bool
@@ -203,7 +222,7 @@ func TestSignupSucess(t *testing.T) {
 	}
 
 	var token models.TokenSignup
-	database.DB.First(&token, "user_id = ?", payloadSignup["id"])
+	db.First(&token, "user_id = ?", payloadSignup["id"])
 
 
 	json.Unmarshal(res.Body.Bytes(), &body)
@@ -214,8 +233,15 @@ func TestSignupSucess(t *testing.T) {
 }
 
 func TestSignupPayloadFail(t *testing.T) {
-	setUp(t)
-	r := router.LoadRoutes()
+	_, db, _ := setUp(t)
+
+	authController := controllers.AuthController{
+		DB: db,
+	}
+	routerServer := router.Router {
+		AuthController: &authController,
+	}
+	server := routerServer.LoadRoutes()
 
 	payloadSignup := gin.H{
 		"id":       14511,
@@ -231,7 +257,7 @@ func TestSignupPayloadFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.ServeHTTP(res, req)
+	server.ServeHTTP(res, req)
 
 	var body struct {
 		Ok   bool
