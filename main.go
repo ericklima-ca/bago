@@ -16,7 +16,7 @@ func init() {
 
 func main() {
 	dbs := database.DatabaseServer{
-		Models: []interface{}{&models.TokenRecovery{}, &models.TokenSignup{}, &models.User{}},
+		Models: []interface{}{&models.User{}},
 	}
 	db, err := dbs.Connect()
 	if err != nil {

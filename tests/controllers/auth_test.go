@@ -20,7 +20,7 @@ import (
 func setUp(t *testing.T) (*testing.T, *gorm.DB, controllers.AuthController) {
 	t.Setenv("BAGO_ENV", "test")
 	dbs := database.DatabaseServer{
-		Models: []interface{}{&models.TokenRecovery{}, &models.TokenSignup{}, &models.User{}},
+		Models: []interface{}{&models.User{}},
 	}
 	db, err := dbs.Connect()
 	if err != nil {
@@ -55,7 +55,7 @@ func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
 	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
-		"login":     "14511",
+		"id":     "14511",
 		"password1": "123456",
 	})
 
@@ -98,7 +98,7 @@ func TestAuthLoginFail(t *testing.T) {
 	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
-		"login":    "14511",
+		"id":    "14511",
 		"password": "123456",
 	})
 
@@ -141,7 +141,7 @@ func TestAuthLoginUserNotActive(t *testing.T) {
 	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
-		"login":    "14511",
+		"id":    "14511",
 		"password": "123456",
 	})
 
@@ -220,14 +220,10 @@ func TestSignupSucess(t *testing.T) {
 		Body map[string]interface{}
 	}
 
-	var token models.TokenSignup
-	db.First(&token, "user_id = ?", payloadSignup["id"])
-
+	
 	json.Unmarshal(res.Body.Bytes(), &body)
-
 	assert.Equal(t, http.StatusCreated, res.Code)
 	assert.Equal(t, "user created", body.Body["msg"])
-	assert.Equal(t, 14512, int(token.UserID))
 }
 
 func TestSignupPayloadFail(t *testing.T) {
