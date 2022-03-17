@@ -7,10 +7,11 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
 type DatabaseServer struct {
 	Models []interface{}
-	DB  *gorm.DB
-	Err error
+	DB     *gorm.DB
+	Err    error
 }
 
 func (dbs *DatabaseServer) Connect() (*gorm.DB, error) {

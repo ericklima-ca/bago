@@ -17,7 +17,6 @@ type AuthController struct {
 	DB *gorm.DB
 }
 
-
 type loginPayload struct {
 	Login    string `json:"login,omitempty" binding:"required"`
 	Password string `json:"password,omitempty" binding:"required"`
@@ -27,7 +26,7 @@ type bagoResponse struct {
 	Body gin.H `json:"body,omitempty"`
 }
 
-func (a *AuthController)Login(c *gin.Context) {
+func (a *AuthController) Login(c *gin.Context) {
 	var loginPayload loginPayload
 	if err := c.ShouldBindJSON(&loginPayload); err != nil {
 		c.JSON(http.StatusBadRequest, bagoResponse{
@@ -79,7 +78,7 @@ func (a *AuthController)Login(c *gin.Context) {
 	c.JSON(http.StatusOK, br)
 }
 
-func (a *AuthController)Recovery(c *gin.Context) {
+func (a *AuthController) Recovery(c *gin.Context) {
 	var user models.User
 	userIdInt, _ := strconv.Atoi(c.Param("id"))
 	if result := a.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
@@ -95,7 +94,7 @@ func (a *AuthController)Recovery(c *gin.Context) {
 
 }
 
-func (a *AuthController)Signup(c *gin.Context) {
+func (a *AuthController) Signup(c *gin.Context) {
 	var userFormData models.UserFormData
 	if err := c.ShouldBindJSON(&userFormData); err != nil {
 		c.JSON(http.StatusBadRequest, bagoResponse{

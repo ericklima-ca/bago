@@ -25,7 +25,7 @@ func main() {
 	authController := controllers.AuthController{
 		DB: db,
 	}
-	routerServer := router.Router {
+	routerServer := router.Router{
 		AuthController: &authController,
 	}
 	server := routerServer.LoadRoutes()

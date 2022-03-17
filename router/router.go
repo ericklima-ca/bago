@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 )
+
 type Router struct {
 	AuthController AuthHandler
 }
@@ -13,7 +14,7 @@ type AuthHandler interface {
 	Recovery(*gin.Context)
 }
 
-func (r *Router)LoadRoutes() *gin.Engine {
+func (r *Router) LoadRoutes() *gin.Engine {
 	routerEngine := gin.Default()
 
 	authGroup := routerEngine.Group("/api/auth")

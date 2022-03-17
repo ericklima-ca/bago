@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func setUp(t *testing.T) (*testing.T, *gorm.DB, controllers.AuthController ) {
+func setUp(t *testing.T) (*testing.T, *gorm.DB, controllers.AuthController) {
 	t.Setenv("BAGO_ENV", "test")
 	dbs := database.DatabaseServer{
 		Models: []interface{}{&models.TokenRecovery{}, &models.TokenSignup{}, &models.User{}},
@@ -65,7 +65,6 @@ func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
 	}
 	res := httptest.NewRecorder()
 	r.ServeHTTP(res, req)
-
 
 	var body struct {
 		Ok   bool
@@ -195,7 +194,7 @@ func TestSignupSucess(t *testing.T) {
 	authController := controllers.AuthController{
 		DB: db,
 	}
-	routerServer := router.Router {
+	routerServer := router.Router{
 		AuthController: &authController,
 	}
 	server := routerServer.LoadRoutes()
@@ -224,7 +223,6 @@ func TestSignupSucess(t *testing.T) {
 	var token models.TokenSignup
 	db.First(&token, "user_id = ?", payloadSignup["id"])
 
-
 	json.Unmarshal(res.Body.Bytes(), &body)
 
 	assert.Equal(t, http.StatusCreated, res.Code)
@@ -238,7 +236,7 @@ func TestSignupPayloadFail(t *testing.T) {
 	authController := controllers.AuthController{
 		DB: db,
 	}
-	routerServer := router.Router {
+	routerServer := router.Router{
 		AuthController: &authController,
 	}
 	server := routerServer.LoadRoutes()
