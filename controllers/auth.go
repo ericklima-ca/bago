@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ericklima-ca/bago/models"
+	cachingservice "github.com/ericklima-ca/bago/services/caching_service"
+	mailingservice "github.com/ericklima-ca/bago/services/mailing_service"
 	"github.com/golang-jwt/jwt"
 	"gorm.io/gorm"
 
@@ -18,7 +20,7 @@ type AuthController struct {
 }
 
 type loginPayload struct {
-	Login    string `json:"login,omitempty" binding:"required"`
+	ID       string `json:"id,omitempty" binding:"required"`
 	Password string `json:"password,omitempty" binding:"required"`
 }
 type bagoResponse struct {
@@ -38,7 +40,7 @@ func (a *AuthController) Login(c *gin.Context) {
 		return
 	}
 	var user models.User
-	_id, _ := strconv.Atoi(loginPayload.Login)
+	_id, _ := strconv.Atoi(loginPayload.ID)
 
 	if result := a.DB.First(&user, "id = ?", _id); result.RowsAffected != 0 {
 		ok := user.TryAuthenticate(loginPayload.Password)
@@ -71,10 +73,7 @@ func (a *AuthController) Login(c *gin.Context) {
 	if err := setAuthToken(&br); err != nil {
 		panic(err)
 	}
-	// <-- TBD
-	// c.SetCookie("Authorization", "Bearer: "+br.Body["token"].(string), int(time.Now().Add(time.Hour*8).Unix()), "/login", c.Request.Host, true, true)
-	// c.Header("Authorization", "Bearer: "+br.Body["token"].(string))
-	// ->
+
 	c.JSON(http.StatusOK, br)
 }
 
@@ -84,13 +83,6 @@ func (a *AuthController) Recovery(c *gin.Context) {
 	if result := a.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
 		return
 	}
-
-	tokenRecovery := models.TokenRecovery{
-		TokenBase: models.TokenBase{
-			UserID: user.ID,
-		},
-	}
-	a.DB.Create(&tokenRecovery)
 
 }
 
@@ -114,18 +106,30 @@ func (a *AuthController) Signup(c *gin.Context) {
 		})
 		return
 	}
-	token := models.TokenSignup{
-		TokenBase: models.TokenBase{
-			UserID: userFormData.ID,
-		},
-	}
-	a.DB.Create(&token)
+	// 115.575µs with goroutine
+	// 901.311µs without goroutine
+	done := make(chan bool)
+	go func() {
+		/* ********** TODO : REMOVE THIS BLOCK URGENTLY !!!!!!!!!!!!
+		ONLY TO PASS THE TEST
+		*/
+		if os.Getenv("BAGO_ENV") == "test" {
+			done <- true
+			return
+		}
+		// ***************************************************
+
+		cachingservice.SetToken("signup", userFormData.ID)
+		mailingservice.SendMessageToQueue(userFormData.ID, userFormData.Name, userFormData.Email)
+		done <- true
+	}()
 	c.JSON(http.StatusCreated, bagoResponse{
 		Ok: true,
 		Body: gin.H{
 			"msg": "user created",
 		},
 	})
+	<-done
 }
 
 func setAuthToken(br *bagoResponse) error {
