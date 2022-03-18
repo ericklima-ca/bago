@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ericklima-ca/bago/models"
@@ -20,7 +21,7 @@ type AuthController struct {
 }
 
 type loginPayload struct {
-	ID       string `json:"id,omitempty" binding:"required"`
+	ID       uint   `json:"id,omitempty" binding:"required"`
 	Password string `json:"password,omitempty" binding:"required"`
 }
 type bagoResponse struct {
@@ -40,9 +41,8 @@ func (a *AuthController) Login(c *gin.Context) {
 		return
 	}
 	var user models.User
-	_id, _ := strconv.Atoi(loginPayload.ID)
 
-	if result := a.DB.First(&user, "id = ?", _id); result.RowsAffected != 0 {
+	if result := a.DB.First(&user, "id = ?", loginPayload.ID); result.RowsAffected != 0 {
 		ok := user.TryAuthenticate(loginPayload.Password)
 		if !ok && !user.Active {
 			c.JSON(http.StatusNotImplemented, bagoResponse{
@@ -75,15 +75,6 @@ func (a *AuthController) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, br)
-}
-
-func (a *AuthController) Recovery(c *gin.Context) {
-	var user models.User
-	userIdInt, _ := strconv.Atoi(c.Param("id"))
-	if result := a.DB.First(&user, "id = ?", userIdInt); result.Error != nil {
-		return
-	}
-
 }
 
 func (a *AuthController) Signup(c *gin.Context) {
@@ -120,7 +111,7 @@ func (a *AuthController) Signup(c *gin.Context) {
 		// ***************************************************
 
 		cachingservice.SetToken("signup", userFormData.ID)
-		mailingservice.SendMessageToQueue(userFormData.ID, userFormData.Name, userFormData.Email)
+		mailingservice.SendConfirmationEmail(userFormData.ID, userFormData.Name, userFormData.Email, c.Request.Host)
 		done <- true
 	}()
 	c.JSON(http.StatusCreated, bagoResponse{
@@ -130,6 +121,92 @@ func (a *AuthController) Signup(c *gin.Context) {
 		},
 	})
 	<-done
+	return
+}
+
+func (a *AuthController) Recovery(c *gin.Context) {
+	var payloadRecovery struct {
+		ID       uint   `json:"id" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+	var user models.User
+	if err := c.ShouldBindJSON(&payloadRecovery); err != nil {
+		c.JSON(http.StatusBadRequest, bagoResponse{
+			Ok: false,
+			Body: gin.H{
+				"error": "data does not match",
+			},
+		})
+		return
+	}
+
+	if result := a.DB.First(&user, "id = ?", payloadRecovery.ID); result.RowsAffected != 0 {
+		cachingservice.SetToken("recovery", user.ID, payloadRecovery.Password)
+		mailingservice.SendRecoveryEmail(user.ID, user.Name, user.Email, c.Request.Host)
+	}
+
+	c.JSON(http.StatusAccepted, bagoResponse{
+		Ok: true,
+		Body: gin.H{
+			"msg": "confirm the changes in your email",
+		},
+	})
+	return
+}
+
+func (a *AuthController) Verify(c *gin.Context) {
+	userIdParam, _ := strconv.Atoi(c.Param("id"))
+	tokenParam := c.Param("token")
+	action := c.Param("action")
+	switch action {
+	case "signup":
+		cachedToken := cachingservice.GetToken("signup", uint(userIdParam))
+		if tokenParam == cachedToken {
+			var user models.User
+			a.DB.First(&user, "id = ?", userIdParam).Update("active", true)
+			c.JSON(http.StatusOK, bagoResponse{
+				Ok: true,
+				Body: gin.H{
+					"msg": "user has been activated",
+				},
+			})
+			cachingservice.DeleteToken("signup", uint(userIdParam))
+			return
+		} else {
+			c.JSON(http.StatusBadRequest, bagoResponse{
+				Ok: false,
+				Body: gin.H{
+					"error": "failed to activate user or token expirated",
+				},
+			})
+			return
+		}
+	case "recovery":
+		cachedResult := cachingservice.GetToken("recovery", uint(userIdParam))
+		tokenPassList := strings.SplitN(cachedResult, ":", 2)
+		token, pass := tokenPassList[0], tokenPassList[1]
+		if tokenParam == token {
+			var user models.User
+			a.DB.First(&user, "id = ?", userIdParam).Update("hashed_password", pass)
+			c.JSON(http.StatusOK, bagoResponse{
+				Ok: true,
+				Body: gin.H{
+					"msg": "password updated",
+				},
+			})
+			cachingservice.DeleteToken("recovery", uint(userIdParam))
+			return
+		} else {
+			c.JSON(http.StatusBadRequest, bagoResponse{
+				Ok: false,
+				Body: gin.H{
+					"error": "failed to update password or token expirated",
+				},
+			})
+			return
+		}
+
+	}
 }
 
 func setAuthToken(br *bagoResponse) error {
