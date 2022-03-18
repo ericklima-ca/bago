@@ -55,7 +55,7 @@ func TestAuthLoginSucessAndTokenCreated(t *testing.T) {
 	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
-		"id":     "14511",
+		"id":        "14511",
 		"password1": "123456",
 	})
 
@@ -98,7 +98,7 @@ func TestAuthLoginFail(t *testing.T) {
 	r.POST("/api/auth/login", auth.Login)
 
 	b, _ := json.Marshal(map[string]string{
-		"id":    "14511",
+		"id":       "14511",
 		"password": "123456",
 	})
 
@@ -140,8 +140,8 @@ func TestAuthLoginUserNotActive(t *testing.T) {
 	r := gin.Default()
 	r.POST("/api/auth/login", auth.Login)
 
-	b, _ := json.Marshal(map[string]string{
-		"id":    "14511",
+	b, _ := json.Marshal(map[string]interface{}{
+		"id":       14511,
 		"password": "123456",
 	})
 
@@ -220,7 +220,6 @@ func TestSignupSucess(t *testing.T) {
 		Body map[string]interface{}
 	}
 
-	
 	json.Unmarshal(res.Body.Bytes(), &body)
 	assert.Equal(t, http.StatusCreated, res.Code)
 	assert.Equal(t, "user created", body.Body["msg"])
