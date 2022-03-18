@@ -2,6 +2,7 @@ package cachingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -23,31 +25,45 @@ func connect() {
 	rdb = redis.NewClient(opt)
 }
 
-func SetToken(subKey string, userID uint) {
+func SetToken(subkey string, moreParams ...interface{}) {
 	connect()
 	token := Token{
-		ID: generateRandomToken(),
+		ID:         generateRandomToken(),
 		Expiration: time.Hour,
-		UserID: userID,
+		UserID:     moreParams[0].(uint),
 	}
-	key := fmt.Sprintf("token:%v:%v", subKey, token.UserID)
-	rdb.Set(context.TODO(), key, token.ID, token.Expiration )
+	var key string
+	switch subkey {
+	case "signup":
+		key = fmt.Sprintf("token:signup:%v", token.UserID)
+		rdb.Set(context.TODO(), key, token.ID, token.Expiration)
+	case "recovery":
+		key = fmt.Sprintf("token:recovery:%v", token.UserID)
+		pass := encryptPass(moreParams[1].(string))
+		rdb.Set(context.TODO(), key, token.ID+":"+pass, token.Expiration)
+	}
+
 }
-func GetToken(subKey string, userID uint) string {
+func GetToken(subkey string, userID uint) (str string) {
 	connect()
-	key := fmt.Sprintf("token:%v:%v", subKey, userID)
+	key := fmt.Sprintf("token:%v:%v", subkey, userID)
 	str, err := rdb.Get(context.TODO(), key).Result()
-	
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	return str
 }
 
+func DeleteToken(subkey string, userID uint) {
+	connect()
+	key := fmt.Sprintf("token:%v:%v", subkey, userID)
+	rdb.Del(context.TODO(), key)
+}
+
 type Token struct {
-	ID             string
+	ID         string
 	Expiration time.Duration
-	UserID         uint
+	UserID     uint
 }
 
 func generateRandomToken() string {
@@ -59,4 +75,13 @@ func generateRandomToken() string {
 		s[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(s)
+}
+
+func encryptPass(pass string) string {
+	userPassBytes := []byte(pass)
+	passBytes, err := bcrypt.GenerateFromPassword(userPassBytes, bcrypt.DefaultCost)
+	if err != nil {
+		err = errors.New("unable to hash password")
+	}
+	return string(passBytes)
 }

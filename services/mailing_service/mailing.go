@@ -10,7 +10,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func SendMessageToQueue(id uint, name, email string) {
+func sendMessageToQueue(msg []byte) {
 	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	checkError(err, "connection failed")
 	defer conn.Close()
@@ -20,12 +20,12 @@ func SendMessageToQueue(id uint, name, email string) {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"mail",       // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
+		"mail", // name
+		true,   // durable
+		false,  // delete when unused
+		false,  // exclusive
+		false,  // no-wait
+		nil,    // arguments
 	)
 	checkError(err, "declaring queue failed")
 
@@ -37,7 +37,7 @@ func SendMessageToQueue(id uint, name, email string) {
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "application/json",
-			Body:         formatEmail(id, name, email),
+			Body:         msg,
 		},
 	)
 }
@@ -48,14 +48,26 @@ func checkError(err error, msg string) {
 	}
 }
 
-func formatEmail(id uint, n, e string) []byte {
+func SendConfirmationEmail(id uint, name, email, url string) {
 	strId := strconv.Itoa(int(id))
 	token := cachingservice.GetToken("signup", id)
 	msg, _ := json.Marshal(map[string]interface{}{
-		"to": e,
+		"to":      email,
 		"subject": "Email confirmation!",
-		"body": `<p>`+ n + `Please confirm your email by clicking the link below:</p>
-				<p>https://example.com/api/auth/verify/` + strId + `/` +token + `</p>`,
+		"body": `<p>` + name + `Please confirm your email by clicking the link below:</p>
+				<p>https://` + url + `/api/auth/verify/signup/` + strId + `/` + token + `</p>`,
 	})
-	return msg
+	sendMessageToQueue(msg)
+}
+
+func SendRecoveryEmail(id uint, name, email, url string) {
+	strId := strconv.Itoa(int(id))
+	token := cachingservice.GetToken("recovery", id)
+	msg, _ := json.Marshal(map[string]interface{}{
+		"to":      email,
+		"subject": "Password recovery confirmation!",
+		"body": `<p>` + name + `Please confirm your new password by clicking the link below:</p>
+				<p>https://` + url + `/api/auth/verify/recovery/` + strId + `/` + token + `</p>`,
+	})
+	sendMessageToQueue(msg)
 }
