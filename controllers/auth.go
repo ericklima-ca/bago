@@ -101,15 +101,6 @@ func (a *AuthController) Signup(c *gin.Context) {
 	// 901.311µs without goroutine
 	done := make(chan bool)
 	go func() {
-		/* ********** TODO : REMOVE THIS BLOCK URGENTLY !!!!!!!!!!!!
-		ONLY TO PASS THE TEST
-		*/
-		if os.Getenv("BAGO_ENV") == "test" {
-			done <- true
-			return
-		}
-		// ***************************************************
-
 		cachingservice.SetToken("signup", userFormData.ID)
 		mailingservice.SendConfirmationEmail(userFormData.ID, userFormData.Name, userFormData.Email, c.Request.Host)
 		done <- true

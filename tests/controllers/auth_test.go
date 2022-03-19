@@ -12,6 +12,7 @@ import (
 	"github.com/ericklima-ca/bago/database"
 	"github.com/ericklima-ca/bago/models"
 	"github.com/ericklima-ca/bago/router"
+	cachingservice "github.com/ericklima-ca/bago/services/caching_service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -220,9 +221,11 @@ func TestSignupSucess(t *testing.T) {
 		Body map[string]interface{}
 	}
 
+	str := cachingservice.GetToken("signup", 14512)
 	json.Unmarshal(res.Body.Bytes(), &body)
 	assert.Equal(t, http.StatusCreated, res.Code)
 	assert.Equal(t, "user created", body.Body["msg"])
+	assert.NotEqual(t, str, "", "empty token")
 }
 
 func TestSignupPayloadFail(t *testing.T) {
