@@ -10,6 +10,26 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - "6379:6379"
+
+      rabbitmq:
+        image: rabbitmq
+        ports:
+          - "5672:5672"
+        env:
+          RABBITMQ_DEFAULT_USER: root
+          RABBITMQ_DEFAULT_PASS: root
+
     steps:
     - uses: actions/checkout@v2
 
@@ -22,4 +42,8 @@ jobs:
       run: go build -v ./...
 
     - name: Test
+      env:
+        RABBITMQ_URL: amqp://root:root@localhost:5672
+        JWT_SECRET: jwt_secret_test
+        REDIS_URL: redis://localhost:6379
       run: go test -v ./tests/...
