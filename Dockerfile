@@ -10,6 +10,7 @@ COPY . .
 RUN go build -o /bago
 
 FROM gcr.io/distroless/base-debian11
+LABEL maintainer="Erick Amorim <github.com/ericklima-ca>"
 COPY --from=builder /bago /bago
 EXPOSE 8080
 ENTRYPOINT ["/bago"]

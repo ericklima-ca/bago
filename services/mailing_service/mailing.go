@@ -54,8 +54,8 @@ func SendConfirmationEmail(id uint, name, email, url string) {
 	msg, _ := json.Marshal(map[string]interface{}{
 		"to":      email,
 		"subject": "Email confirmation!",
-		"body": `<p>` + name + `Please confirm your email by clicking the link below:</p>
-				<p>https://` + url + `/api/auth/verify/signup/` + strId + `/` + token + `</p>`,
+		"body": `<p>` + name + `, please confirm your email by clicking the link below:</p>
+				<p>http://` + url + `/api/auth/verify/signup/` + strId + `/` + token + `</p>`,
 	})
 	sendMessageToQueue(msg)
 }
@@ -66,8 +66,8 @@ func SendRecoveryEmail(id uint, name, email, url string) {
 	msg, _ := json.Marshal(map[string]interface{}{
 		"to":      email,
 		"subject": "Password recovery confirmation!",
-		"body": `<p>` + name + `Please confirm your new password by clicking the link below:</p>
-				<p>https://` + url + `/api/auth/verify/recovery/` + strId + `/` + token + `</p>`,
+		"body": `<p>` + name + `, please confirm your new password by clicking the link below:</p>
+				<p>http://` + url + `/api/auth/verify/recovery/` + strId + `/` + token + `</p>`,
 	})
 	sendMessageToQueue(msg)
 }

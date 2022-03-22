@@ -5,7 +5,7 @@ services:
     container_name: bago-db
     image: postgres
     ports:
-      - "5432:5432"
+      - "5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     restart: always
@@ -13,19 +13,64 @@ services:
       POSTGRES_PASSWORD: root
       POSTGRES_USER: root
       POSTGRES_DB: root
+    networks:
+      - bago-net
 
   cache:
     container_name: bago-cache
     image: redis
     ports:
-      - "6379:6379"
+      - "6379"
+    networks:
+      - bago-net
 
   broker:
     container_name: bago-broker
-    image: rabbitmq:latest
-    hostname: rabbit-go
+    image: rabbitmq:3-management-alpine
+    hostname: broker
     ports:
-      - "5672:5672"
+      - 5672
+      - 15672
     environment:
       - RABBITMQ_DEFAULT_USER=root
       - RABBITMQ_DEFAULT_PASS=root
+    healthcheck:
+      test: "ls ~"
+      timeout: 5s
+      interval: 10s
+      retries: 2
+      start_period: 5s
+    networks:
+      - bago-net
+
+  mailmango:
+    container_name: bago-mailer
+    image: erickamorimlima/mailmango:0.0.2
+    env_file:
+      - .env
+    depends_on:
+      broker:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - bago-net
+
+  server:
+    container_name: bago-server
+    build:
+      context: .
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - cache
+      - broker
+      - mailmango
+    ports:
+      - 8080:8080
+    restart: on-failure
+    networks:
+      - bago-net
+networks:
+  bago-net:
+    driver: bridge
