@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	cachingservice "github.com/ericklima-ca/bago/services/caching_service"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -62,7 +63,9 @@ func SendConfirmationEmail(id uint, name, email, url string) {
 
 func SendRecoveryEmail(id uint, name, email, url string) {
 	strId := strconv.Itoa(int(id))
-	token := cachingservice.GetToken("recovery", id)
+	cachedResult := cachingservice.GetToken("recovery", id)
+	resultList := strings.SplitN(cachedResult, ":", 2)
+	token := resultList[0]
 	msg, _ := json.Marshal(map[string]interface{}{
 		"to":      email,
 		"subject": "Password recovery confirmation!",
