@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,6 +18,7 @@ type AuthHandler interface {
 
 func (r *Router) LoadRoutes() *gin.Engine {
 	routerEngine := gin.Default()
+	routerEngine.Use(cors.Default())
 
 	authGroup := routerEngine.Group("/api/auth")
 	{
