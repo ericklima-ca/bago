@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  broker:
+    container_name: bago-broker
+    image: rabbitmq
+    hostname: broker
+    ports:
+      - "5672:5672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=root
+      - RABBITMQ_DEFAULT_PASS=root
+    healthcheck:
+      test: "ls ~"
+      timeout: 5s
+      interval: 10s
+      retries: 2
+      start_period: 5s
+
+  cache:
+    container_name: bago-cache
+    image: redis
+    ports:
+      - "6379:6379"
