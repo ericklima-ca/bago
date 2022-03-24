@@ -1,12 +1,18 @@
 package router
 
 import (
+	"github.com/ericklima-ca/bago/router/middlewares"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	AuthController AuthHandler
+	AuthController  AuthHandler
+	OrderController OrderHandler
+}
+
+type OrderHandler interface {
+	Create(*gin.Context)
 }
 
 type AuthHandler interface {
@@ -27,6 +33,11 @@ func (r *Router) LoadRoutes() *gin.Engine {
 		authGroup.POST("/recovery/", r.AuthController.Recovery)
 		authGroup.GET("/verify/:action/:id/:token", r.AuthController.Verify)
 
+	}
+	ordersGroup := routerEngine.Group("/api/orders")
+	{
+		ordersGroup.Use(middlewares.AuthGuard())
+		ordersGroup.POST("/create", r.OrderController.Create)
 	}
 
 	return routerEngine
