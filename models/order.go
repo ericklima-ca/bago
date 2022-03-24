@@ -6,52 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type Request struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Orders []Order
-	Customer Customer
-	Center Center
+type Sell struct {
+	ID        uint    `gorm:"primaryKey,autoIncrement" json:"id,omitempty"`
+	OrderID   uint    `gorm:"not null" json:"order_id,omitempty"`
+	ProductID uint    `gorm:"not null" json:"product_id,omitempty"`
+	Product   Product `json:"product,omitempty"`
+	Amount    int     `gorm:"default:1" json:"amount,omitempty"`
 }
 
-type Product struct {
-	ID        uint `gorm:"primarykey"`
-	Description string
-	ImageUrl string
-}
-
-type Order struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	SoldProducts []SoldProduct
-}
-
-type SoldProduct struct {
-	Product Product
-	Amount int
-}
-
-type Customer struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Name string
-	Email string
-}
-
-type Center struct {
-	ID        uint `gorm:"primarykey"`
-	Description string
-	Email string
-}
-
-type RequestStatus struct {
-	Request Request
-	Status string
-	User string
+type PurchaseOrder struct {
+	ID        uint           `gorm:"primarykey" json:"id,omitempty"`
+	CreatedAt time.Time      `json:"created_at,omitempty"`
+	UpdatedAt time.Time      `json:"updated_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	RequestID uint           `gorm:"not null" json:"request_id,omitempty"`
+	Sells     []Sell         `json:"sells,omitempty"`
 }
