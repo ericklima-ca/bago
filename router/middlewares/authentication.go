@@ -3,16 +3,16 @@ package middlewares
 import (
 	"encoding/json"
 	"net/http"
-	"os"
+	"strings"
 
 	"github.com/ericklima-ca/bago/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
-func AuthGuard() gin.HandlerFunc {
+func AuthGuard(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("authorization")
+		token := strings.Split(c.GetHeader("authorization"), "")[1]
 		if token == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"ok": false,
@@ -22,7 +22,7 @@ func AuthGuard() gin.HandlerFunc {
 			})
 		} else {
 			t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-				return []byte(os.Getenv("JWT_SECRET")), nil
+				return []byte(secret), nil
 			})
 			if err != nil {
 				c.AbortWithError(http.StatusInternalServerError, err)

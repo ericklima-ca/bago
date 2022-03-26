@@ -24,17 +24,13 @@ type loginPayload struct {
 	ID       uint   `json:"id,omitempty" binding:"required"`
 	Password string `json:"password,omitempty" binding:"required"`
 }
-type bagoResponse struct {
-	Ok   bool  `json:"ok"`
-	Body gin.H `json:"body,omitempty"`
-}
 
 func (a *AuthController) Login(c *gin.Context) {
 	var loginPayload loginPayload
 	if err := c.ShouldBindJSON(&loginPayload); err != nil {
-		c.JSON(http.StatusBadRequest, bagoResponse{
-			Ok: false,
-			Body: gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
+			"ok": false,
+			"body": gin.H{
 				"error": "invalid payload",
 			},
 		})
@@ -45,32 +41,32 @@ func (a *AuthController) Login(c *gin.Context) {
 	if result := a.DB.First(&user, "id = ?", loginPayload.ID); result.RowsAffected != 0 {
 		ok := user.TryAuthenticate(loginPayload.Password)
 		if !ok && !user.Active {
-			c.JSON(http.StatusNotImplemented, bagoResponse{
-				Ok: false,
-				Body: gin.H{
+			c.JSON(http.StatusNotImplemented, gin.H{
+				"ok": false,
+				"body": gin.H{
 					"error": "user not active",
 				},
 			})
 			return
 		}
 	} else {
-		c.JSON(http.StatusUnauthorized, bagoResponse{
-			Ok: false,
-			Body: gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"ok": false,
+			"body": gin.H{
 				"error": "incorrect password or login",
 			},
 		})
 		return
 	}
 
-	br := bagoResponse{
-		Ok: true,
-		Body: gin.H{
+	br := gin.H{
+		"ok": true,
+		"body": gin.H{
 			"user":  user,
 			"token": "",
 		},
 	}
-	if err := setAuthToken(&br); err != nil {
+	if err := setAuthToken(br); err != nil {
 		panic(err)
 	}
 
@@ -80,18 +76,18 @@ func (a *AuthController) Login(c *gin.Context) {
 func (a *AuthController) Signup(c *gin.Context) {
 	var userFormData models.UserFormData
 	if err := c.ShouldBindJSON(&userFormData); err != nil {
-		c.JSON(http.StatusBadRequest, bagoResponse{
-			Ok: false,
-			Body: gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
+			"ok": false,
+			"body": gin.H{
 				"error": "data does not match",
 			},
 		})
 		return
 	}
 	if result := a.DB.Create(userFormData.GetUser()); result.Error != nil {
-		c.JSON(http.StatusUnauthorized, bagoResponse{
-			Ok: false,
-			Body: gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"ok": false,
+			"body": gin.H{
 				"error": "user not created",
 			},
 		})
@@ -105,9 +101,9 @@ func (a *AuthController) Signup(c *gin.Context) {
 		mailingservice.SendConfirmationEmail(userFormData.ID, userFormData.Name, userFormData.Email, c.Request.Host)
 		done <- true
 	}()
-	c.JSON(http.StatusCreated, bagoResponse{
-		Ok: true,
-		Body: gin.H{
+	c.JSON(http.StatusCreated, gin.H{
+		"ok": true,
+		"body": gin.H{
 			"msg": "user created",
 		},
 	})
@@ -122,9 +118,9 @@ func (a *AuthController) Recovery(c *gin.Context) {
 	}
 	var user models.User
 	if err := c.ShouldBindJSON(&payloadRecovery); err != nil {
-		c.JSON(http.StatusBadRequest, bagoResponse{
-			Ok: false,
-			Body: gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
+			"ok": false,
+			"body": gin.H{
 				"error": "data does not match",
 			},
 		})
@@ -136,9 +132,9 @@ func (a *AuthController) Recovery(c *gin.Context) {
 		mailingservice.SendRecoveryEmail(user.ID, user.Name, user.Email, c.Request.Host)
 	}
 
-	c.JSON(http.StatusAccepted, bagoResponse{
-		Ok: true,
-		Body: gin.H{
+	c.JSON(http.StatusAccepted, gin.H{
+		"ok": true,
+		"body": gin.H{
 			"msg": "confirm the changes in your email",
 		},
 	})
@@ -155,18 +151,18 @@ func (a *AuthController) Verify(c *gin.Context) {
 		if tokenParam == cachedToken {
 			var user models.User
 			a.DB.First(&user, "id = ?", userIdParam).Update("active", true)
-			c.JSON(http.StatusOK, bagoResponse{
-				Ok: true,
-				Body: gin.H{
+			c.JSON(http.StatusOK, gin.H{
+				"ok": true,
+				"body": gin.H{
 					"msg": "user has been activated",
 				},
 			})
 			cachingservice.DeleteToken("signup", uint(userIdParam))
 			return
 		} else {
-			c.JSON(http.StatusBadRequest, bagoResponse{
-				Ok: false,
-				Body: gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
+				"ok": false,
+				"body": gin.H{
 					"error": "failed to activate user or token expirated",
 				},
 			})
@@ -179,18 +175,18 @@ func (a *AuthController) Verify(c *gin.Context) {
 		if tokenParam == token {
 			var user models.User
 			a.DB.First(&user, "id = ?", userIdParam).Update("hashed_password", pass)
-			c.JSON(http.StatusOK, bagoResponse{
-				Ok: true,
-				Body: gin.H{
+			c.JSON(http.StatusOK, gin.H{
+				"ok": true,
+				"body": gin.H{
 					"msg": "password updated",
 				},
 			})
 			cachingservice.DeleteToken("recovery", uint(userIdParam))
 			return
 		} else {
-			c.JSON(http.StatusBadRequest, bagoResponse{
-				Ok: false,
-				Body: gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
+				"ok": false,
+				"body": gin.H{
 					"error": "failed to update password or token expirated",
 				},
 			})
@@ -200,11 +196,11 @@ func (a *AuthController) Verify(c *gin.Context) {
 	}
 }
 
-func setAuthToken(br *bagoResponse) error {
+func setAuthToken(br gin.H) error {
 	SECRET := os.Getenv("JWT_SECRET")
-
+	user := br["body"].(gin.H)["user"]
 	claim := jwt.MapClaims{
-		"user": br.Body["user"],
+		"user": user,
 		"token": jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 8).Unix(),
 		},
@@ -215,6 +211,6 @@ func setAuthToken(br *bagoResponse) error {
 	if err != nil {
 		panic(err)
 	}
-	br.Body["token"] = token
+	br["body"].(gin.H)["token"] = token
 	return err
 }

@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+
 	"github.com/ericklima-ca/bago/router/middlewares"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -12,7 +14,7 @@ type Router struct {
 }
 
 type OrderHandler interface {
-	Create(*gin.Context)
+	GetAll(*gin.Context)
 }
 
 type AuthHandler interface {
@@ -34,10 +36,11 @@ func (r *Router) LoadRoutes() *gin.Engine {
 		authGroup.GET("/verify/:action/:id/:token", r.AuthController.Verify)
 
 	}
+
 	ordersGroup := routerEngine.Group("/api/orders")
+	ordersGroup.Use(middlewares.AuthGuard(os.Getenv("JWT_SECRET")))
 	{
-		ordersGroup.Use(middlewares.AuthGuard())
-		ordersGroup.POST("/create", r.OrderController.Create)
+		// ordersGroup.GET("/", r.OrderController.GetAll)
 	}
 
 	return routerEngine

@@ -9,5 +9,6 @@ func GetModels() []interface{} {
 		&Customer{},
 		&Product{},
 		&Sell{},
+		&PurchaseOrderStatus{},
 	}
 }
