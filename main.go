@@ -22,11 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("DB not connected: %v", err.Error())
 	}
-	authController := controllers.AuthController{
-		DB: db,
-	}
+
+	controllers.CreateControllers(db)
+
 	routerServer := router.Router{
-		AuthController: &authController,
+		AuthController:  &controllers.Auth,
+		OrderController: &controllers.Order,
 	}
 	server := routerServer.LoadRoutes()
 
