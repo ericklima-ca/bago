@@ -12,36 +12,35 @@ import (
 
 func AuthGuard(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := strings.Split(c.GetHeader("authorization"), "")[1]
-		if token == "" {
+		authHeader := c.GetHeader("authorization")
+		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"ok": false,
 				"body": gin.H{
 					"error": "user not authenticated",
 				},
 			})
+		}
+		token := strings.Split(authHeader, " ")[1]
+		t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+		if rawPayload, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+			var user models.User
+			bytesPayload, _ := json.Marshal(rawPayload)
+			json.Unmarshal(bytesPayload, &user)
+			c.Set("user", user)
+			c.Next()
 		} else {
-			t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-				return []byte(secret), nil
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"ok": false,
+				"body": gin.H{
+					"error": "invalid jwt token",
+				},
 			})
-			if err != nil {
-				c.AbortWithError(http.StatusInternalServerError, err)
-			}
-			if rawPayload, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
-				var user models.User
-				bytesPayload, _ := json.Marshal(rawPayload)
-				json.Unmarshal(bytesPayload, &user)
-				c.Set("user", user)
-				c.Next()
-			} else {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"ok": false,
-					"body": gin.H{
-						"error": "invalid jwt token",
-					},
-				})
-			}
-
 		}
 	}
 }

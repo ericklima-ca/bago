@@ -110,14 +110,13 @@ func TestAuthLoginFail(t *testing.T) {
 	res := httptest.NewRecorder()
 	r.ServeHTTP(res, req)
 
-	var body struct {
+	var resp struct {
 		Ok   bool
 		Body map[string]interface{}
 	}
 
-	json.Unmarshal(res.Body.Bytes(), &body)
-	log.Println(body)
-	assert.NotEqual(t, true, body.Ok)
+	json.Unmarshal(res.Body.Bytes(), &resp)
+	assert.NotEqual(t, true, resp.Ok)
 }
 
 func TestAuthLoginUserNotActive(t *testing.T) {
@@ -153,13 +152,13 @@ func TestAuthLoginUserNotActive(t *testing.T) {
 	res := httptest.NewRecorder()
 	r.ServeHTTP(res, req)
 
-	var body struct {
+	var resp struct {
 		Ok   bool
 		Body map[string]interface{}
 	}
 
-	json.Unmarshal(res.Body.Bytes(), &body)
-	assert.Equal(t, "user not active", body.Body["error"])
+	json.Unmarshal(res.Body.Bytes(), &resp)
+	assert.Equal(t, "user not active", resp.Body["error"])
 }
 
 func TestAuthLoginFailPayload(t *testing.T) {
@@ -180,23 +179,23 @@ func TestAuthLoginFailPayload(t *testing.T) {
 	res := httptest.NewRecorder()
 	r.ServeHTTP(res, req)
 
-	var body struct {
+	var resp struct {
 		Ok   bool
 		Body map[string]interface{}
 	}
 
-	json.Unmarshal(res.Body.Bytes(), &body)
-	assert.Equal(t, "invalid payload", body.Body["error"])
+	json.Unmarshal(res.Body.Bytes(), &resp)
+	assert.Equal(t, "invalid payload", resp.Body["error"])
 }
 
 func TestSignupSucess(t *testing.T) {
 	_, db, _ := setUp(t)
 
-	authController := controllers.AuthController{
-		DB: db,
-	}
+	controllers.CreateControllers(db)
+
 	routerServer := router.Router{
-		AuthController: &authController,
+		AuthController:  &controllers.Auth,
+		OrderController: &controllers.Order,
 	}
 	server := routerServer.LoadRoutes()
 
@@ -216,26 +215,26 @@ func TestSignupSucess(t *testing.T) {
 	}
 	server.ServeHTTP(res, req)
 
-	var body struct {
+	var resp struct {
 		Ok   bool
 		Body map[string]interface{}
 	}
 
 	str := cachingservice.GetToken("signup", 14512)
-	json.Unmarshal(res.Body.Bytes(), &body)
+	json.Unmarshal(res.Body.Bytes(), &resp)
 	assert.Equal(t, http.StatusCreated, res.Code)
-	assert.Equal(t, "user created", body.Body["msg"])
+	assert.Equal(t, "user created", resp.Body["msg"])
 	assert.NotEqual(t, str, "", "empty token")
 }
 
 func TestSignupPayloadFail(t *testing.T) {
 	_, db, _ := setUp(t)
 
-	authController := controllers.AuthController{
-		DB: db,
-	}
+	controllers.CreateControllers(db)
+
 	routerServer := router.Router{
-		AuthController: &authController,
+		AuthController:  &controllers.Auth,
+		OrderController: &controllers.Order,
 	}
 	server := routerServer.LoadRoutes()
 
@@ -255,13 +254,13 @@ func TestSignupPayloadFail(t *testing.T) {
 	}
 	server.ServeHTTP(res, req)
 
-	var body struct {
+	var resp struct {
 		Ok   bool
 		Body map[string]interface{}
 	}
 
-	json.Unmarshal(res.Body.Bytes(), &body)
+	json.Unmarshal(res.Body.Bytes(), &resp)
 
 	assert.Equal(t, http.StatusBadRequest, res.Code)
-	assert.Equal(t, "data does not match", body.Body["error"])
+	assert.Equal(t, "data does not match", resp.Body["error"])
 }
