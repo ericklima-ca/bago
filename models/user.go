@@ -9,10 +9,10 @@ import (
 )
 
 type User struct {
-	ID             uint `json:"id,omitempty" gorm:"primarykey" binding:"required"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time      `json:"-"`
-	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+	ID             uint           `json:"id,omitempty" gorm:"primarykey" binding:"required"`
+	CreatedAt      time.Time      `json:"created_at,omitempty"`
+	UpdatedAt      time.Time      `json:"updated_at,omitempty"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	Name           string         `json:"name,omitempty" gorm:"not null" binding:"required"`
 	Lastname       string         `json:"lastname,omitempty" gorm:"not null" binding:"required"`
 	Email          string         `json:"email,omitempty" gorm:"not null" binding:"required"`
