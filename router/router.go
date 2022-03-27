@@ -14,6 +14,7 @@ type Router struct {
 }
 
 type OrderHandler interface {
+	CreateMany(*gin.Context)
 	GetAll(*gin.Context)
 }
 
@@ -40,7 +41,8 @@ func (r *Router) LoadRoutes() *gin.Engine {
 	ordersGroup := routerEngine.Group("/api/orders")
 	ordersGroup.Use(middlewares.AuthGuard(os.Getenv("JWT_SECRET")))
 	{
-		// ordersGroup.GET("/", r.OrderController.GetAll)
+		ordersGroup.POST("/", r.OrderController.CreateMany)
+		ordersGroup.GET("/", r.OrderController.GetAll)
 	}
 
 	return routerEngine
