@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/ericklima-ca/bago/controllers"
 	"github.com/ericklima-ca/bago/database"
@@ -15,6 +16,11 @@ func init() {
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("$PORT not set")
+	}
+
 	dbs := database.DatabaseServer{
 		Models: models.GetModels(),
 	}
@@ -31,5 +37,5 @@ func main() {
 	}
 	server := routerServer.LoadRoutes()
 
-	server.Run(":8080")
+	server.Run(":" + port)
 }
