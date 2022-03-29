@@ -16,7 +16,7 @@ type User struct {
 	Name           string         `json:"name,omitempty" gorm:"not null" binding:"required"`
 	Lastname       string         `json:"lastname,omitempty" gorm:"not null" binding:"required"`
 	Email          string         `json:"email,omitempty" gorm:"not null" binding:"required"`
-	Role           uint           `json:"role,omitempty"`
+	Role           string         `gorm:"default:'user'" json:"role,omitempty"`
 	Active         bool           `json:"active" gorm:"default=false"`
 	HashedPassword string         `json:"-" gorm:"not null"`
 }

@@ -13,7 +13,7 @@ type PurchaseOrderStatus struct {
 	PurchaseOrderID uint      `json:"purchase_order_id,omitempty" binding:"required"`
 	UserID          uint      `json:"user_id,omitempty" binding:"required"`
 	User            User      `json:"user,omitempty"`
-	Description     string    `json:"description,omitempty" binding:"required"`
+	Description     string    `gorm:"default:'pending'" json:"description,omitempty" binding:"required"`
 }
 
 type Sell struct {

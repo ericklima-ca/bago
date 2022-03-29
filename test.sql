@@ -1,11 +1,11 @@
 -- POST data
 -- [
 --   {
---     "id": 4,
+--     "id": 90000000012345,
 --     "customer_id": 1,
 --     "purchase_orders": [{
 --         "id": 4112347,
---         "order_id": 1,
+--         "order_id": 90000000012345,
 --         "sells": [{
 --             "purchase_order_id": 4112347,
 --             "product_id": 14520,
@@ -17,7 +17,12 @@
 --             "description": "pending"
 --         }]
 --     }], 
---     "center_id": 114
+--     "center_id": 114,
+--     "status": [{
+--          "order_id": 90000000012345,
+--          "user_id": 14510,
+--          "description": "pending"
+--      }]
 --   }
 -- ]
 UPDATE users

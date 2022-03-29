@@ -16,6 +16,7 @@ type Router struct {
 type OrderHandler interface {
 	CreateMany(*gin.Context)
 	GetAll(*gin.Context)
+	Delete(*gin.Context)
 }
 
 type AuthHandler interface {
@@ -43,6 +44,7 @@ func (r *Router) LoadRoutes() *gin.Engine {
 	{
 		ordersGroup.POST("/", r.OrderController.CreateMany)
 		ordersGroup.GET("/", r.OrderController.GetAll)
+		ordersGroup.DELETE("/:id", r.OrderController.Delete)
 	}
 
 	return routerEngine
